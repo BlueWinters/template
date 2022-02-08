@@ -1,0 +1,8 @@
+mark:
+  current: transition
+  color:
+    foreground: [255, 0, 0]
+    transition: [0, 0, 255]
+  index:
+    foreground: 2
+    transition: 1

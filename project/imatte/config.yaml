@@ -1,0 +1,27 @@
+matte: all
+gca:
+  engine:
+    type: torch
+    device: cuda:0
+    parameters: E:/experiment/gca-matting/gca-matting.gpu.pt
+sim:
+  num_classes: 20
+  stride: 8
+  engine_cls:
+    type: torch
+    device: cuda:0
+    parameters: E:/experiment/semantic-image-matting/checkpoints/export/sim.classifier.pt
+  engine_sim:
+    type: torch
+    device: cuda:0
+    parameters: E:/experiment/semantic-image-matting/checkpoints/export/sim.model.pt
+timi:
+  engine:
+    type: torch
+    device: cuda:0
+    parameters: E:/experiment/timi-net/timi-net.pt
+dim:
+  engine:
+    type: torch
+    device: cuda:0
+    parameters: E:/experiment/pytorch-deep-image-matting/dim.pt
