@@ -3,6 +3,7 @@ from .libgca import LibGCA
 from .libsim import LibSIM
 from .libtimi import LibTIMI
 from .libdim import LibDIM
+from .libfgi import LibFGI
 
 
 LibClassDict = dict(
@@ -10,6 +11,7 @@ LibClassDict = dict(
     sim=LibSIM,
     timi=LibTIMI,
     dim=LibDIM,
+    fgi=LibFGI,
 )
 
 

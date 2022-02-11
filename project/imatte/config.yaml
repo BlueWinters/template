@@ -25,3 +25,8 @@ dim:
     type: torch
     device: cuda:0
     parameters: E:/experiment/pytorch-deep-image-matting/dim.pt
+fgi:
+  engine:
+    type: torch
+    device: cuda:0
+    parameters: E:/experiment/fgi-matting/checkpoints/fgi-dim.pt
