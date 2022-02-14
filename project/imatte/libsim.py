@@ -167,12 +167,12 @@ if __name__ == '__main__':
         engine_cls=dict(
             type='torch',
             device = 'cuda:0',
-            parameters = 'E:/experiment/semantic-image-matting/checkpoints/export/sim.classifier.pt',
+            parameters = 'data/models/matte/sim.classifier.pt',
         ),
         engine_sim=dict(
             type='torch',
             device='cuda:0',
-            parameters='E:/experiment/semantic-image-matting/checkpoints/export/sim.model.pt',
+            parameters='data/models/matte/sim.model.pt',
         ),
     )
     lib = LibSIM(config=config)

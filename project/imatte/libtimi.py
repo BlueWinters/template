@@ -77,7 +77,7 @@ if __name__ == '__main__':
     config = dict(
         type='torch',
         device='cuda:0',
-        parameters='E:/experiment/timi-net/timi-net.pt'
+        parameters='data/models/matte/timi-net.pt'
     )
     lib = LibTIMI(config={'engine':config})
     lib.initialize()

@@ -77,7 +77,7 @@ if __name__ == '__main__':
     config = dict(
         type='torch',
         device='cuda:0',
-        parameters='E:/experiment/gca-matting/gca-matting.gpu.pt'
+        parameters='data/models/matte/gca-matting.gpu.pt'
     )
     lib = LibGCA(config={'engine':config})
     lib.initialize()

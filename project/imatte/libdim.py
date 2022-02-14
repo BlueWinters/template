@@ -78,7 +78,7 @@ if __name__ == '__main__':
     config = dict(
         type='torch',
         device='cuda:0',
-        parameters='E:/experiment/pytorch-deep-image-matting/dim.pt'
+        parameters='data/models/matte/dim.pt'
     )
     lib = LibDIM(config={'engine':config})
     lib.initialize()

@@ -77,7 +77,7 @@ if __name__ == '__main__':
     config = dict(
         type='torch',
         device='cuda:0',
-        parameters='E:/experiment/fgi-matting/checkpoints/fgi-dim.pt'
+        parameters='data/models/matte/fgi-dim.pt'
     )
     lib = LibFGI(config={'engine':config})
     lib.initialize()
