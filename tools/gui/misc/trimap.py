@@ -58,13 +58,19 @@ class TrimapGenerator:
         image = cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_GRAYSCALE)
         return TrimapGenerator.format(image)
 
+    @staticmethod
+    def from_dilation(tri:np.ndarray):
+        new_tri = np.where(tri == 2, 1, 0)
+        new_tri = TrimapGenerator.calculate_tri_from_seg(new_tri)
+        return new_tri
+
     """
     """
     def __init__(self):
-        self.filter_tri, self.flag_tri = self.calculate_filter(k=11)
-        self.filter_pre, self.flag_pre = self.calculate_filter(k=3)
+        pass
 
-    def calculate_filter(self, k: int = 11):
+    @staticmethod
+    def calculate_filter(k: int = 11):
         cx, cy = k // 2, k // 2
         center = np.reshape(np.array([cx, cy], dtype=np.int32), (1, 1, 2))
         xx = np.arange(0, k, 1)
@@ -76,7 +82,8 @@ class TrimapGenerator:
         filter = np.where(distance < 150, 1, 0).astype(np.int32)
         return filter, np.sum(filter)
 
-    def calculate_tri(self, mask, filter, flag):
+    @staticmethod
+    def calculate_tri(mask, filter, flag):
         bdr = signal.convolve2d(mask, filter, mode='same', boundary='symm')
         bdr = np.where((bdr > 0) & (bdr < flag), 1, 0)
         output = np.zeros_like(mask)  # background is 0
@@ -84,7 +91,8 @@ class TrimapGenerator:
         output[bdr == 1] = 1
         return output
 
-    def connectivity_process(self, tri):
+    @staticmethod
+    def connectivity_process(tri):
         assert len(np.unique(tri) == 3)
         mask = np.where(tri > 0, np.ones_like(tri), np.zeros_like(tri))
         region, n = measure.label(mask, connectivity=2, return_num=True)
@@ -97,12 +105,16 @@ class TrimapGenerator:
         label = props[index].label
         return np.where(region == label, np.ones_like(region), np.zeros_like(region)).astype(np.uint8)
 
-    def calculate_tri_from_seg(self, seg):
-        bdr_pre = self.calculate_tri(seg, self.filter_pre, self.flag_pre)
-        new_seg = self.connectivity_process(bdr_pre) * seg
-        bdr_out = self.calculate_tri(new_seg, self.filter_tri, self.flag_tri)
+    @staticmethod
+    def calculate_tri_from_seg(seg):
+        filter_tri, flag_tri = TrimapGenerator.calculate_filter(k=11)
+        filter_pre, flag_pre = TrimapGenerator.calculate_filter(k=3)
+        bdr_pre = TrimapGenerator.calculate_tri(seg, filter_pre, flag_pre)
+        new_seg = TrimapGenerator.connectivity_process(bdr_pre) * seg
+        bdr_out = TrimapGenerator.calculate_tri(new_seg, filter_tri, flag_tri)
         return bdr_out
 
+    @staticmethod
     def __call__(self, matting):
         segment = np.where(matting > 0, np.ones_like(matting), np.zeros_like(matting))
         return self.calculate_tri_from_seg(segment)

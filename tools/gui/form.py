@@ -72,12 +72,13 @@ class ViewerFormMain(object):
         self.toolButtonRun.clicked.connect(self.toolButtonRunClicked)
         self.pushButtonOption.clicked.connect(self.pushButtonOptionClicked)
         self.pushButtonClear.clicked.connect(self.pushButtonClearClicked)
+        self.horizontalSliderStrokeSize.valueChanged.connect(self.horizontalSliderStrokeSizeValueChanged)
         self.graphicsViewInput.contextMenuEvent = self.graphicsViewInputContextMenuEvent
 
     def setupFcn(self):
-        from tools.gui.fcn.fcn_viewer import FcnViewDisplay, FcnViewerSyn
-        self.fcnViewDisIn = FcnViewDisplay(self.graphicsViewInput)
-        self.fcnViewDisOt = FcnViewDisplay(self.graphicsViewOutput)
+        from tools.gui.fcn.fcn_viewer import ContainerQtView, FcnViewerSyn
+        self.fcnViewDisIn = ContainerQtView(self.graphicsViewInput)
+        self.fcnViewDisOt = ContainerQtView(self.graphicsViewOutput)
         self.fcnViewerSyn = FcnViewerSyn(view_list=[self.graphicsViewInput, self.graphicsViewOutput])
         from tools.gui.fcn.fcn_button import FcnButtonOpen
         self.fcnButtonOpen = FcnButtonOpen(self.form, self.toolButtonOpen)
@@ -93,6 +94,11 @@ class ViewerFormMain(object):
             name, self.toolButtonRunClickedSubmenu(name))
         menu_open.addAction('all', self.toolButtonRunClickedSubmenu('all'))
         self.toolButtonRun.setMenu(menu_open)
+        # for cursor
+        size = self.data['mark']['size']
+        self.horizontalSliderStrokeSize.setMinimum(size['minimum'])
+        self.horizontalSliderStrokeSize.setMaximum(size['maximum'])
+        self.horizontalSliderStrokeSize.setProperty("value", size['current'])
 
     """
     """
@@ -136,6 +142,14 @@ class ViewerFormMain(object):
 
     def pushButtonClearClicked(self):
         self.fcnViewDisIn.clearMarks()
+        self.configMark()
+
+    def horizontalSliderStrokeSizeValueChanged(self):
+        if self.fcnViewDisIn.isValid():
+            value = self.horizontalSliderStrokeSize.value()
+            self.printMessage('normal', 'change mark size {}'.format(value))
+            self.data['mark']['size']['current'] = value
+            self.configMark()
 
     def graphicsViewInputContextMenuEvent(self, event:QtGui.QContextMenuEvent):
         def getQAction(title, function, checked):
@@ -153,10 +167,11 @@ class ViewerFormMain(object):
                 sub_menu_trimap.addAction(getQAction('show', self.ctxMenuActionTriMapSubMenuShow, False))
                 sub_menu_trimap.addSection('from')
                 sub_menu_trimap.addAction(getQAction('from-file', self.ctxMenuActionTriMapSubMenuFromFile, False))
+                sub_menu_trimap.addAction(getQAction('from-dilation', self.ctxMenuActionTriMapSubMenuDilation, False))
                 sub_menu_trimap.addSection('mark')
                 is_foreground = bool(self.data['mark']['current'] == 'foreground')
-                sub_menu_trimap.addAction(getQAction('foreground', lambda: self.setMarkType('foreground'), is_foreground))
-                sub_menu_trimap.addAction(getQAction('transition', lambda: self.setMarkType('transition'), not is_foreground))
+                sub_menu_trimap.addAction(getQAction('foreground', lambda: self.configMark('foreground'), is_foreground))
+                sub_menu_trimap.addAction(getQAction('transition', lambda: self.configMark('transition'), not is_foreground))
                 sub_menu_select = menu.addMenu('select-as')
                 sub_menu_select.addAction(getQAction('show', self.ctxMenuActionSelectAsSubMenuShow(x, y), False))
                 sub_menu_select.addAction(getQAction('foreground', self.ctxMenuActionSelectAsSubMenuForeground(x, y), False))
@@ -192,7 +207,7 @@ class ViewerFormMain(object):
             self.printMessage('normal', 'load image success', False)
             self.fcnViewDisIn.displayViewInput(self.data['image'].rgb)
             self.fcnViewDisOt.invalidImage()
-            self.setMarkType()
+            self.configMark()
             self.enableComponent(True)
         except AssertionError:
             self.printMessage('warning', 'load image fail', False)
@@ -202,6 +217,12 @@ class ViewerFormMain(object):
         self.toolButtonRun.setEnabled(flag)
         self.pushButtonClear.setEnabled(flag)
         self.horizontalSliderStrokeSize.setEnabled(flag)
+
+    # def setCursor(self):
+    #     cursor_size = self.data['mark']['size']['current']
+    #     cursor_name = self.data['mark']['current']
+    #     cursor_path = self.data['resource']['cursor'][cursor_name]
+    #     self.fcnViewDisIn.setCursor(size=cursor_size, source=cursor_path)
 
     """
     """
@@ -225,6 +246,14 @@ class ViewerFormMain(object):
             path, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self.form, 'open a file', '.', filter='*.png;*.bmp')
             self.inputTriMap(path)
+
+    def ctxMenuActionTriMapSubMenuDilation(self):
+        scene = self.graphicsViewInput.scene()
+        if isinstance(scene, QtWidgets.QGraphicsScene):
+            from .misc.trimap import TrimapGenerator
+            tri = self.fcnViewDisIn.getCanvasResults()['stroke'][0]
+            tri = TrimapGenerator.from_dilation(tri)
+            self.fcnViewDisIn.inputMark(mask=tri, mode='overwrite')
 
     def ctxMenuActionSelectAsSubMenuShow(self, x, y):
         def selectRegion():
@@ -264,11 +293,18 @@ class ViewerFormMain(object):
         region = TrimapGenerator.select(tri, xx, yy, sign=sign)
         return region
 
-    def setMarkType(self, name=None):
+    def configMark(self, name=None):
         mark = self.data['mark']
         assert name in mark['color'] or name is None
         current = mark['current'] = name if name is not None else mark['current']
-        self.fcnViewDisIn.setCanvasColor(color=mark['color'][current])
+        mark_color = mark['color'][current]
+        mark_size = mark['size']['current']
+        cursor_path = self.data['resource']['cursor'][current]
+        cursor_alpha = self.data['resource']['cursor']['alpha']
+        # config
+        config_mark = {'color':mark_color, 'size':mark_size}
+        config_cursor = {'source':cursor_path, 'alpha': cursor_alpha}
+        self.fcnViewDisIn.setCanvasMarkType(mark=config_mark, cursor=config_cursor)
 
     def inputTriMap(self, path):
         if os.path.exists(path):

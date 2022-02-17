@@ -209,7 +209,7 @@ class Stroke(Mark):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.radius = 20.
+        self.radius = 16.
         self.traces = list()
         # self.board = np.zeros([*self.size, 3], dtype=np.uint8)
         self.board = np.zeros(self.size, dtype=np.uint8)
