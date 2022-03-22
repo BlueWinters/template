@@ -16,7 +16,7 @@ class QGraphicsSceneCanvas(QtWidgets.QGraphicsScene):
         # canvas
         self.canvas = Canvas(size=self.size, rgb=self.rgb)
         # the first handle
-        self.setMark('stroke')
+        self.setMark(kwargs['mark'])
         # first display
         self._displayImage(self.canvas.update())
 
@@ -45,22 +45,47 @@ class QGraphicsSceneCanvas(QtWidgets.QGraphicsScene):
             self._displayImage(image_vis)
 
     def mousePressEvent(self, event):
+        event_list = list()
         if event.buttons() == QtCore.Qt.LeftButton:
-            x, y = event.scenePos().x(), event.scenePos().y()
-            image_vis = self.canvas.mouse_press_event(x, y)
-            self._displayImage(image_vis)
+            event_list.append('left-button')
+        if event.buttons() == QtCore.Qt.RightButton:
+            event_list.append('right-button')
+        x, y = event.scenePos().x(), event.scenePos().y()
+        image_vis = self.canvas.mouse_press_event(x, y, event_list)
+        self._displayImage(image_vis)
 
     def mouseMoveEvent(self, event):
+        event_list = list()
         if event.buttons() == QtCore.Qt.LeftButton:
-            x, y = event.scenePos().x(), event.scenePos().y()
-            image_vis = self.canvas.mouse_move_event(x, y)
-            self._displayImage(image_vis)
+            event_list.append('left-button')
+        if event.buttons() == QtCore.Qt.RightButton:
+            event_list.append('right-button')
+        x, y = event.scenePos().x(), event.scenePos().y()
+        image_vis = self.canvas.mouse_move_event(x, y, event_list)
+        self._displayImage(image_vis)
 
     def mouseReleaseEvent(self, event):
+        event_list = list()
         if event.button() == QtCore.Qt.LeftButton:
-            x, y = event.scenePos().x(), event.scenePos().y()
-            image_vis = self.canvas.mouse_release_event(x, y)
-            self._displayImage(image_vis)
+            event_list.append('left-button')
+        x, y = event.scenePos().x(), event.scenePos().y()
+        image_vis = self.canvas.mouse_release_event(x, y, event_list)
+        self._displayImage(image_vis)
+
+    # def mouseDoubleClickEvent(self, event):
+    #     event_list = list()
+    #     if event.button() == QtCore.Qt.LeftButton:
+    #         event_list.append('left-button')
+    #     x, y = event.scenePos().x(), event.scenePos().y()
+    #     image_vis = self.canvas.mouse_double_click_event(x, y, event_list)
+    #     self._displayImage(image_vis)
+
+    def keyPressEvent(self, event:QtGui.QKeyEvent):
+        event_list = list()
+        if event.key() == QtCore.Qt.Key_Escape:
+            event_list.append('key-escape')
+        image_vis = self.canvas.mouse_key_press_event(event_list)
+        self._displayImage(image_vis)
 
     """
     """
@@ -73,8 +98,10 @@ class QGraphicsSceneCanvas(QtWidgets.QGraphicsScene):
         return self.canvas.get_scale()
 
     def setMark(self, handle):
-        assert 'rectangle' == handle or 'stroke' == handle
         self.canvas.change_handle(handle)
+
+    def getMark(self) -> str:
+        return self.canvas.get_mark()
 
     def setColor(self, color):
         self.canvas.set_color(color)

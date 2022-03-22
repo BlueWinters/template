@@ -22,10 +22,7 @@ class LibEngineTorch(LibEngine):
         self.detach = lambda tensor: tensor.cpu().detach().numpy()
 
     def __del__(self):
-        del self.module
-        del self.device
         self.module, self.device = None, None
-        print('delete engine(torch)')
 
     """
     """

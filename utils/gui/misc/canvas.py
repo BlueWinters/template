@@ -21,8 +21,8 @@ class Canvas:
     @staticmethod
     def _handle_dict():
         return MarkClassDict(
-            [Mark.name(), Rectangle.name(), Stroke.name()],
-            [Mark, Rectangle, Stroke]
+            [Mark.name(), Rectangle.name(), Stroke.name(), Polygon.name()],
+            [Mark, Rectangle, Stroke, Polygon]
         )
 
     @property
@@ -61,21 +61,27 @@ class Canvas:
         return len(self.coating_list)
 
     def mouse_press_event(self, *args):
-        x, y = args
-        self._handle_object.mouse_press_event(x, y, self.ratio)
-        image = self._handle_object.mouse_press_draw(self.image_src.copy(), 1.)
+        x, y, event = args
+        self._handle_object.mouse_press_event(x, y, event, self.ratio)
+        image = self._handle_object.mouse_press_draw(self.image_src.copy(), 1., event)
         return self._resize(image, self.ratio)
 
     def mouse_move_event(self, *args):
-        x, y = args
-        self._handle_object.mouse_move_event(x, y, self.ratio)
-        image = self._handle_object.mouse_move_draw(self.image_src.copy(), 1.)
+        x, y, event = args
+        self._handle_object.mouse_move_event(x, y, event, self.ratio)
+        image = self._handle_object.mouse_move_draw(self.image_src.copy(), 1., event)
         return self._resize(image, self.ratio)
 
     def mouse_release_event(self, *args):
-        x, y = args
-        self._handle_object.mouse_release_event(x, y, self.ratio)
-        image = self._handle_object.mouse_release_draw(self.image_src.copy(), 1.)
+        x, y, event = args
+        self._handle_object.mouse_release_event(x, y, event, self.ratio)
+        image = self._handle_object.mouse_release_draw(self.image_src.copy(), 1., event)
+        return self._resize(image, self.ratio)
+
+    def mouse_key_press_event(self, *args):
+        event, = args
+        self._handle_object.mouse_key_press_event(event, self.ratio)
+        image = self._handle_object.mouse_key_press_draw(self.image_src.copy(), 1., event)
         return self._resize(image, self.ratio)
 
     def wheel_event(self, *args):
@@ -96,8 +102,8 @@ class Canvas:
 
     def change_handle(self, type:str):
         if len(self.coating_list) > 0:
-            if self.coating_list[-1].valid() is False:
-                self.coating_list.pop(-1)
+            # if self.coating_list[-1].valid() is False:
+            self.coating_list.pop(-1)
         self.coating_list.append(self.handle_dict[type](size=self._canvas_shape()))
 
     def get_results(self, **kwargs):
@@ -142,6 +148,9 @@ class Canvas:
         # r, g, b = color
         self.coating_list[-1].set_color(color)
 
+    def get_mark(self):
+        return self._handle_object.name()
+
 
 
 
@@ -171,10 +180,13 @@ class Mark:
     def mouse_release_event(self, *args):
         ...
 
+    def mouse_key_press_event(self, *args):
+        ...
+
     def wheel_event(self, *args):
         ...
 
-    def input_once_event(self, *args):
+    def input_once_event(self, *args, **kwargs):
         ...
 
     def mouse_press_draw(self, *args):
@@ -184,6 +196,9 @@ class Mark:
         ...
 
     def mouse_release_draw(self, *args):
+        ...
+
+    def mouse_key_press_draw(self, *args):
         ...
 
     def input_once_draw(self, *args):
@@ -211,7 +226,7 @@ class Stroke(Mark):
         super().__init__(*args, **kwargs)
         self.radius = 16.
         self.traces = list()
-        # self.board = np.zeros([*self.size, 3], dtype=np.uint8)
+        self.data = None
         self.board = np.zeros(self.size, dtype=np.uint8)
 
     def __str__(self):
@@ -252,16 +267,19 @@ class Stroke(Mark):
         self.ratio = ratio
 
     def mouse_press_event(self, *args):
-        x, y, ratio = args
-        self.data = (x / ratio, y / ratio, self.radius / ratio, self.color)
+        x, y, event, ratio = args
+        if 'left-button' in event:
+            self.data = (x / ratio, y / ratio, self.radius / ratio, self.color)
 
     def mouse_move_event(self, *args):
-        x, y, ratio = args
-        self.data = (x / ratio, y / ratio, self.radius / ratio, self.color)
+        x, y, event, ratio = args
+        if 'left-button' in event:
+            self.data = (x / ratio, y / ratio, self.radius / ratio, self.color)
 
     def mouse_release_event(self, *args):
-        x, y, ratio = args
-        self.data = (x / ratio, y / ratio, self.radius / ratio, self.color)
+        x, y, event, ratio = args
+        if 'left-button' in event:
+            self.data = None  #(x / ratio, y / ratio, self.radius / ratio, self.color)
 
     def wheel_event(self, *args):
         pass
@@ -278,21 +296,33 @@ class Stroke(Mark):
         return None
 
     def mouse_press_draw(self, *args):
-        rgb, ratio = args
-        x, y, radius, color = self.data
-        self._draw_on_image(rgb, x, y, radius, ratio, color, self.board)
+        rgb, ratio, event = args
+        if 'left-button' in event:
+            if self.data != None:
+                x, y, radius, color = self.data
+                self._draw_on_image(rgb, x, y, radius, ratio, color, self.board)
+        if 'right-button' in event:
+            self._draw_on_image(rgb, self.board, ratio)
         return rgb
 
     def mouse_move_draw(self, *args):
-        rgb, ratio = args
-        x, y, radius, color = self.data
-        self._draw_on_image(rgb, x, y, radius, ratio, color, self.board)
+        rgb, ratio, event = args
+        if 'left-button' in event:
+            if self.data != None:
+                x, y, radius, color = self.data
+                self._draw_on_image(rgb, x, y, radius, ratio, color, self.board)
+        if 'right-button' in event:
+            self._draw_on_image(rgb, self.board, ratio)
         return rgb
 
     def mouse_release_draw(self, *args):
-        rgb, ratio = args
-        x, y, radius, color = self.data
-        self._draw_on_image(rgb, x, y, radius, ratio, color, self.board)
+        rgb, ratio, event = args
+        self._draw_on_image(rgb, self.board, ratio)
+        return rgb
+
+    def mouse_key_press_draw(self, *args):
+        rgb, ratio, event = args
+        self._draw_on_image(rgb, self.board, ratio)
         return rgb
 
     def input_once_draw(self, *args):
@@ -385,17 +415,17 @@ class Rectangle(Mark):
         return None
 
     def mouse_press_draw(self, *args):
-        rgb, ratio = args
+        rgb, ratio, event = args
         return rgb
 
     def mouse_move_draw(self, *args):
-        rgb, ratio = args
+        rgb, ratio, event = args
         copy = rgb.copy()
         self._draw_on(copy, self.x0, self.y0, self.x1, self.y1, ratio)
         return copy
 
     def mouse_release_draw(self, *args):
-        rgb, ratio = args
+        rgb, ratio, event = args
         self._draw_on(rgb, self.x0, self.y0, self.x1, self.y1, ratio)
         return rgb
 
@@ -417,6 +447,135 @@ class Rectangle(Mark):
 
     def valid(self) -> bool:
         return bool(len(self.history) > 0)
+
+
+
+class Polygon(Mark):
+    # static variable
+    __Name__ = 'polygon'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.thick = 4
+        self.color = (255, 0, 0)
+        self.board = np.zeros(self.size, dtype=np.uint8)
+        # for current
+        self.x, self.y = None, None
+        self.sequential = []
+
+    def __str__(self):
+        return Polygon.__Name__
+
+    @staticmethod
+    def name():
+        return Polygon.__Name__
+
+    def _map_color(self, color):
+        if tuple(color) == (255, 0, 0):
+            return (2, 2, 2)
+        if tuple(color) == (0, 0, 255):
+            return (1, 1, 1)
+        raise NotImplementedError
+
+    def _quantify_coordinate(self, x, y, ratio, include):
+        data = []
+        all_points = self.sequential + ([(x, y),] if include == True else [])
+        for xx, yy in all_points:
+            xx = self.quantify(xx * ratio)
+            yy = self.quantify(yy * ratio)
+            data.append((xx, yy))
+        return np.reshape(np.array(data, dtype=np.int32), (-1, 2))
+
+    def _draw_on(self, *args):
+        rgb, x, y, ratio, board, include = args
+        points = self._quantify_coordinate(x, y, ratio, include)
+        # visual convex face
+        if len(points) >= 3:
+            from skimage.draw import polygon2mask
+            mask = polygon2mask(rgb.shape[:2], points[:,::-1]).astype(np.uint8)
+            board[mask > 0] = self._map_color(self.color)[0]
+        rgb_mask = np.ones_like(rgb)
+        rgb_mask[board == 2, 1:] = 0
+        rgb_mask[board == 1, :2] = 0
+        rgb *= rgb_mask
+        # visual outer lines
+        if len(points) >= 2:
+            cv2.polylines(rgb, [np.reshape(points, (-1,1,2))],
+                isClosed=True, color=self.color, thickness=3)
+
+    def _merge_into_mask(self):
+        pass
+
+    def mouse_press_event(self, *args):
+        x, y, event, ratio = args
+        if 'left-button' in event:
+            self.x, self.y = x / ratio, y / ratio
+
+    def mouse_move_event(self, *args):
+        x, y, event, ratio = args
+        self.x, self.y = x / ratio, y / ratio
+
+    def mouse_release_event(self, *args):
+        x, y, event, ratio = args
+        if 'left-button' in event:
+            xx, yy = x / ratio, y / ratio
+            self.sequential.append((xx, yy))
+
+    def mouse_key_press_event(self, *args):
+        event, ratio = args
+        if 'key-escape' in event:
+            self.x, self.y = None, None
+            self.sequential.clear()
+
+    def input_once_event(self, *args, **kwargs):
+        mask, mode = kwargs['mask'], kwargs['mode']
+        if len(mask.shape) == 2:
+            if mode == 'overwrite':
+                self.board = np.copy(mask)
+            if mode == 'select':
+                self.board[mask > 0] = mask[mask > 0]
+            return True
+        return None
+
+    def mouse_press_draw(self, *args):
+        rgb, ratio, event = args
+        self._draw_on(rgb, self.x, self.y, ratio, self.board.copy(), True)
+        return rgb
+
+    def mouse_move_draw(self, *args):
+        rgb, ratio, event = args
+        copy = rgb.copy()
+        self._draw_on(copy, self.x, self.y, ratio, self.board.copy(), True)
+        return copy
+
+    def mouse_release_draw(self, *args):
+        rgb, ratio, event = args
+        self._draw_on(rgb, self.x, self.y, ratio, self.board, False)
+        return rgb
+
+    def mouse_key_press_draw(self, *args):
+        rgb, ratio, event = args
+        self._draw_on(rgb, self.x, self.y, ratio, self.board, False)
+        return rgb
+
+    def input_once_draw(self, *args):
+        rgb, ratio = args
+        self._draw_on(rgb, self.x, self.y, ratio, self.board, False)
+        return rgb
+
+    def redraw_on(self, *args):
+        rgb, ratio = args
+        self._draw_on(rgb, self.x, self.y, ratio, self.board, False)
+        return rgb
+
+    def get_results(self, *args, **kwargs):
+        return [self.board]
+
+    def valid(self) -> bool:
+        return True
+
+    def set_color(self, color):
+        self.color = color
 
 
 

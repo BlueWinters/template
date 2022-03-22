@@ -1,0 +1,24 @@
+# common config
+mark: stroke
+type: transition
+color:
+  foreground: [255, 0, 0]
+  transition: [0, 0, 255]
+index:
+  foreground: 2
+  transition: 1
+# specific config
+stroke:
+  size:
+    current: 48
+    minimum: 16
+    maximum: 64
+  cursor:
+    alpha: 128  # [0,255]
+    foreground: utils/gui/res/cursor_f.256.png
+    transition: utils/gui/res/cursor_b.256.png
+polygon:
+
+
+
+

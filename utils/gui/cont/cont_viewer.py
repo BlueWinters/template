@@ -11,24 +11,15 @@ class ContainerQtView(object):
         self.view = view
         self.sub = dict()
 
-    def displayViewInput(self, image:np.ndarray):
-        h, w = self.view.height(), self.view.width()
-        scene = QGraphicsSceneCanvas(parent=self, size=(h, w), image=image)
-        self.view.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        self.view.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        self.view.setScene(scene)
-        self.view.show()
-
-    def isValid(self) -> bool:
-        scene = self.view.scene()
-        return bool(isinstance(scene, QGraphicsSceneCanvas))
-
+    """
+    non-callable function outside
+    """
     def getCanvasScene(self) -> QGraphicsSceneCanvas:
         scene = self.view.scene()
         assert isinstance(scene, QGraphicsSceneCanvas)
         return scene
 
-    def setCursor(self, size:int, source:str, alpha:int=None):
+    def setCursor(self, size: int, source: str, alpha: int = None):
         pixmap = Qt.QPixmap(source)
         pixmap = pixmap.scaled(size, size)
         empty = Qt.QPixmap(pixmap.size())
@@ -39,15 +30,40 @@ class ContainerQtView(object):
         painter.setCompositionMode(Qt.QPainter.CompositionMode_DestinationIn)
         painter.fillRect(empty.rect(), Qt.QColor(0, 0, 0, alpha))
         painter.end()
-        self.view.setCursor(Qt.QCursor(empty, size//2, size//2))
+        self.view.setCursor(Qt.QCursor(empty, size // 2, size // 2))
 
-    def setCanvasMarkType(self, *args, **kwargs):
-        mark = kwargs['mark']
-        cursor = kwargs['cursor']
+    """
+    callable function outside
+    """
+    def displayViewInput(self, mark:str, image:np.ndarray):
+        h, w = self.view.height(), self.view.width()
+        scene = QGraphicsSceneCanvas(parent=self, mark=mark, size=(h, w), image=image)
+        self.view.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.view.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.view.setScene(scene)
+        self.view.show()
+
+    def isValid(self) -> bool:
+        scene = self.view.scene()
+        return bool(isinstance(scene, QGraphicsSceneCanvas))
+
+    # def setCanvasMarkType(self, mark:str):
+    #     scene = self.getCanvasScene()
+    #     scene.setMark(mark)
+
+    def configCanvasMark(self, *args, **kwargs):
+        config = kwargs['config']
         scene = self.getCanvasScene()
-        scene.setColor(mark['color'])
-        scene.setRadiusSize(mark['size']//2)
-        self.setCursor(size=mark['size'], source=cursor['source'], alpha=cursor['alpha'])
+        if scene.getMark() != config['mark'] or config['force'] == True:
+            scene.setMark(config['mark'])
+        if config['mark'] == 'stroke':
+            scene.setColor(color=config['color'])
+            scene.setRadiusSize(radius=config['size']//2)
+            self.setCursor(size=config['size'],
+                source=config['source'], alpha=config['alpha'])
+        if config['mark'] == 'polygon':
+            scene.setColor(color=config['color'])
+            self.view.setCursor(QtCore.Qt.ArrowCursor)  # to default arrow
 
     def getCanvasResults(self, **kwargs):
         return self.getCanvasScene().getResults(**kwargs)
@@ -87,7 +103,7 @@ class ContainerQtView(object):
         view.setFocusPolicy(QtCore.Qt.ClickFocus)
         # update scene
         h, w = view.height(), view.width()
-        scene = QGraphicsSceneCanvas(parent=self, size=(h, w), image=image)
+        scene = QGraphicsSceneCanvas(parent=self, mark='stroke', size=(h, w), image=image)
         view.setScene(scene)
         view.setWindowModality(QtCore.Qt.ApplicationModal)
         view.show()
